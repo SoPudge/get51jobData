@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*- 
 from urllib import request,parse
+from bs4 import BeautifulSoup
+from html.parser import HTMLParser
 import re
 #抓取信息类
 ##实现抓取信息的类，其中含有一个定义抓取内容的方法
@@ -10,9 +12,11 @@ import re
 class getCorpData(object):
     """docstring for getCorpData"""
     """抓取51job所有公司，并存储进入数据库"""
+    """本类专门抓取公司详情信息，通过urllib.request抓取详情页，通过BS4来解析页面获取内容，返回字典"""
     def __init__(self):
-        pass
+        self.corpDetails = {}
     def getCorpDetails(self):
+        #整个getCorpDetails方法，获取公司详情页面，并返回一个request对象
         #header
         corpSearchUrl = request.Request('http://m.51job.com/search/codetail.php?')
         corpSearchUrl.add_header('Host','m.51job.com')
@@ -28,7 +32,8 @@ class getCorpData(object):
         #heaser-end
         
         #pararms
-        corpPararmData = parse.urlencode({'coid':4000000})
+        corpPararmData = parse.urlencode({'coid':3598778})
+        #url传输参数，因为以get方式传输，所以需要构建一个字典存储字符串
         corpGetDataUrl = "http://m.51job.com/search/codetail.php?%s" % corpPararmData
         #pararms-end
         with request.urlopen(corpGetDataUrl) as f:
@@ -38,17 +43,18 @@ class getCorpData(object):
             return f.read().decode('utf-8')
 
     def decodeCorpDetails(self,data):
-        decodeMethod = re.compile(r'<h1 class="mbt">(.*?)</h1>')
-        decodeMethod.search(data)
-        return decodeMethod
-
-
-
-
-
-
-
-
+        #整个方法传入一个需要解析的网页对象，通过bs来解析，获取公司详细信息
+        soupCorpDetails = BeautifulSoup(data,'html.parser')
+        corpName = soupCorpDetails.h1.get_text()
+        #获取公司名称
+        corpType = soupCorpDetails.find_all('font')[4].string
+        corpEmplopyeeNum = soupCorpDetails.find_all('font')[5].string
+        corpBusiness = soupCorpDetails.find_all('font')[6].string
+        corpAddr = soupCorpDetails.select('.area')[0].string
+        #公司性质，规模，行业获取
+        self.corpDetails[corpName] = {'性质':corpType,'规模':corpEmplopyeeNum,'行业':corpBusiness,'地址':corpAddr}
+        #存储到二维字典，以公司名为key，公司的性质，规模，行业为value
+        return self.corpDetails
 
 class getJobData(object):
     def __init__(self):
@@ -85,10 +91,10 @@ class getJobData(object):
 getcorp = getCorpData()
 corpdetails = getcorp.getCorpDetails()
 result = getcorp.decodeCorpDetails(corpdetails)
-print(result.group(1))
+print(result)
 if __name__ == '__main__':
     #getcorp = getCorpData()
     getcorp = getCorpData()
     corpdetails = getcorp.getCorpDetails()
     result = getcorp.decodeCorpDetails(corpdetails)
-    print(result.group(1))
+    print(result)
