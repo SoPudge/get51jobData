@@ -17,10 +17,9 @@ class getCorpData(object):
         self.corpDetails = {}
     def getCorpDetails(self):
         #整个getCorpDetails方法，获取公司详情页面，并返回一个request对象
-        
-        #proxy_support = request.ProxyHandler({'http':'10.166.1.37:8080'}) 
-        #opener = request.build_opener(proxy_support)
-        #request.install_opener(opener)
+        proxy_support = request.ProxyHandler({'http':'10.166.1.37:8080'})
+        opener = request.build_opener(proxy_support)
+        request.install_opener(opener)
         #header
         corpSearchUrl = request.Request('http://m.51job.com/search/codetail.php?')
         corpSearchUrl.add_header('Host','m.51job.com')
@@ -40,7 +39,7 @@ class getCorpData(object):
         #url传输参数，因为以get方式传输，所以需要构建一个字典存储字符串
         corpGetDataUrl = "http://m.51job.com/search/codetail.php?%s" % corpPararmData
         #pararms-end
-        with request.urlopen(corpGetDataUrl) as f:
+        with opener.open(corpGetDataUrl) as f:
             print(f.status,f.reason)
             #for k,v in f.getheaders():
             #    print('%s:%s' % (k,v))
