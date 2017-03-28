@@ -17,6 +17,7 @@ class getCorpData(object):
         self.corpDetails = {}
     def getCorpDetails(self):
         #整个getCorpDetails方法，获取公司详情页面，并返回一个request对象
+        
         #proxy_support = request.ProxyHandler({'http':'10.166.1.37:8080'}) 
         #opener = request.build_opener(proxy_support)
         #request.install_opener(opener)
