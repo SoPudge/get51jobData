@@ -23,42 +23,36 @@ def Parmas(pageno = 1):
     return urlParams
 
 class getIDs(object):
-    def __init__(self,pageno=1):
+    def __init__(self):
         #构建get url，先构建完成带参数url，在附加req
-        self.__getUrl = '%s%s' % ('http://m.51job.com/search/joblist.php?',Parmas())
-        self.__getreq = request.Request(self.__getUrl,headers = headers()) 
-        #先附加req，提交时post参数，参数必须ascii，前程无忧提交的是空数据，请求的网址是带参数的，因为返回json过大，GET无法支持
-        self.__postUrl = '%s%s' % ('http://m.51job.com/ajax/search/joblist.ajax.php?',Parmas(pageno))
-        self.__postreq = request.Request(self.__postUrl,headers = headers())
-
-        self.jobco = []
-        self.searchresult = 0
-        self.__htmlresult = ''
-        self.__dictresult = {}
-
-        self.__getData()
-        self.__decodeData()
-
-    def __getData(self):
+        getUrl = '%s%s' % ('http://m.51job.com/search/joblist.php?',Parmas())
+        getreq = request.Request(getUrl,headers = headers()) 
         #get方法获取搜索数据
-        with request.urlopen(self.__getreq) as g:
-            self.__htmlresult = g.read().decode('utf-8')
-
-        #post方法获取搜索结果并用json解析出来
-        with request.urlopen(self.__postreq) as p:
-            jsonresult = p.read().decode('utf-8')
-            self.__dictresult = json.loads(jsonresult)
-
-    def __decodeData(self):
-        #输出整个页面job结果，每页30个
-        for n in range(30):
-            jobid = self.__dictresult['data'][n]['jobid']
-            coid = self.__dictresult['data'][n]['coid']
-            self.jobco.append((jobid,coid))
-
+        with request.urlopen(getreq) as f:
+            htmlresult = f.read().decode('utf-8')
         #匹配一共有多少个搜索结果
         partten = re.compile(r'(<p class="result">为您找到相关结果约<span>)(\d{0,9})(</span>个</p>)')
-        self.searchresult = partten.search(self.__htmlresult).group(2)
+        self.searchresult = partten.search(htmlresult).group(2)
+
+    def getdata(self,pageno=1):
+        #先附加req，提交时post参数，参数必须ascii，前程无忧提交的是空数据，请求的网址是带参数的，因为返回json过大，GET无法支持
+        postUrl = '%s%s' % ('http://m.51job.com/ajax/search/joblist.ajax.php?',Parmas(pageno))
+        postreq = request.Request(postUrl,headers = headers())
+        #post方法获取搜索结果并用json解析出来
+        with request.urlopen(postreq) as f:
+            jsonresult = f.read().decode('utf-8')
+            dictresult = json.loads(jsonresult)
+        return dictresult
+
+    def decode(self,**kwargs):
+        kwargs = kwargs
+        jobco = []
+        #输出整个页面job结果，每页30个
+        for n in range(len(kwargs['data'])):
+            jobid = kwargs['data'][n]['jobid']
+            coid = kwargs['data'][n]['coid']
+            jobco.append((jobid,coid))
+        return jobco
 
 class getCorpData(object):
     """docstring for getCorpData"""
@@ -98,36 +92,44 @@ class storage(object):
     执行三个存储方法，分别存储jobid和coid，jobid明细，coid明细
     '''
     def __init__(self):
-        self.__conn = sqlite3.connect('job.db')
-        self.__c = self.__conn.cursor()
+        self.conn = sqlite3.connect('job.db')
+        self.__c = self.conn.cursor()
         self.__c.execute('CREATE TABLE IF NOT EXISTS ids (jobid TEXT PRIMARY KEY,coid TEXT)')
 
     def storIDs(self,*args):
-        allargs = args
-        try:
-            self.__c.executemany('INSERT INTO ids VALUES (?,?)',allargs)
-        finally:
-            self.__c.close()
-            self.__conn.commit()
-            self.__conn.close()
-            print('插入完成')
-            
+        args = args
+        self.__c.executemany('INSERT INTO ids VALUES (?,?)',args)
 
 
 if __name__ == '__main__':
-    alist = []
+    templist = []
+    n = 0#设置存储步进
     allid = getIDs()
-    allpage = '%d' % ((int(allid.searchresult) / 30) + 1)
-    allpage = list(range(1,int(allpage)+2))
-    print(allpage[::20])
-    print()
-#    for i in range(1,allpage):
-#        #设置抓第第几页
-#        allid = getIDs(i)
-#        print(allid.jobco)
-#        alist.extend(allid.jobco)
-#        print('完成第 %s/%s 页的抓取，并存入临时list当中' % (i,allpage))
-#        print('')
-#    store = storage()
-#    print('开始插入数据库')
-#    store.storIDs(*alist)
+    searchno = allid.searchresult
+    allpage = '%d' % ((int(searchno) / 30) + 2)
+    allpage = int(allpage)
+    print(allpage)
+    t1 = time.time()
+    for i in range(1,allpage):
+        n = n + 1#设置存储步进
+        #设置抓第第几页
+        everypage = allid.getdata(i)
+        everyid = allid.decode(**everypage)
+        print(everyid)
+        templist.extend(everyid)
+        print('完成第 %s/%s 页的抓取，并存入临时list当中' % (i,allpage-1))
+        print('')
+        store = storage()#初始化数据存储方法
+        if n == 20:
+            print('开始临时插入数据库')
+            store.storIDs(*templist)
+            store.conn.commit()
+            templist = []#重置临时数据
+            n = 1#重置步进
+    print('插入最后一次数据库')
+    store.storIDs(*templist)
+    store.conn.commit()
+    store.conn.close()
+    t2 = time.time()
+    t = (t2-t1) * 100
+    print('插入完成，合计耗时 %s 秒' % t)
