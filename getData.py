@@ -25,7 +25,8 @@ def Parmas(pageno = 1):
 class getIDs(object):
     def __init__(self):
         pass
-    def getpageno(self):
+    @property
+    def pageno(self):
         #该方法只用一次，获取关键字页数
         #构建get url，先构建完成带参数url，在附加req
         getUrl = '%s%s' % ('http://m.51job.com/search/joblist.php?',Parmas())
@@ -58,38 +59,31 @@ class getIDs(object):
             jobco.append((jobid,coid))
         return jobco
 
-class getCorpData(object):
+class jobdata(object):
     """docstring for getCorpData"""
     """抓取51job所有公司，并存储进入数据库"""
     """本类专门抓取公司详情信息，通过urllib.request抓取详情页，通过BS4来解析页面获取内容，返回字典"""
     def __init__(self):
-        #header
-        self._corpSearchUrl = 'http://m.51job.com/search/codetail.php?'
-        self._corpSearchreq = request.Request(self._corpSearchUrl,headers = headers)
-        #heaser-end
-        self._corpDetails = {}
+        pass
 
-    def getjobcopage(self):
-        corpPararmData = parse.urlencode({'coid':3598778})
-        corpGetDataUrl = '%s%s' % (self._corpSearchreq,corpPararmData)
-        with request.urlopen(corpGetDataUrl) as f:
-            print(f.status,f.reason)
-            #for k,v in f.getheaders():
-            #    print('%s:%s' % (k,v))
+    def getjobpage(self,jobid):
+        pageurl = 'http://m.51job.com/search/jobdetail.php?jobid=%s' % (jobid)
+        getreq = request.Request(pageurl,headers = headers()) 
+        with request.urlopen(getreq) as f:
             return f.read().decode('utf-8')
 
-    def decodejobco(self,data):
-        soupCorpDetails = BeautifulSoup(data,'html.parser')
-        corpName = soupCorpDetails.h1.get_text()
-        #获取公司名称
-        corpType = soupCorpDetails.find_all('font')[4].string
-        corpEmplopyeeNum = soupCorpDetails.find_all('font')[5].string
-        corpBusiness = soupCorpDetails.find_all('font')[6].string
-        corpAddr = soupCorpDetails.select('.area')[0].string
-        #公司性质，规模，行业获取
-        self._corpDetails[corpName] = {'性质':corpType,'规模':corpEmplopyeeNum,'行业':corpBusiness,'地址':corpAddr}
-        #存储到二维字典，以公司名为key，公司的性质，规模，行业为value
-        return self._corpDetails
+    def decode(self,data):
+        soup = BeautifulSoup(data,'html.parser')
+        print(soup)
+
+class codata(object):
+    def __init__(self):
+        pass
+    def getcopage(self,coid):
+        pass
+    def decode(self,data):
+        pass
+
 
 class storage(object):
     '''
@@ -104,36 +98,51 @@ class storage(object):
         args = args
         self.__c.executemany('INSERT INTO ids VALUES (?,?)',args)
 
+    def storjobs(self,*args):
+        pass
+
+    def storcorps(self,*args):
+        pass
+
 
 if __name__ == '__main__':
-    templist = []
-    n = 0#设置存储步进
-    allid = getIDs()
-    searchno = allid.getpageno()
-    allpage = '%d' % ((int(searchno) / 30) + 2)
-    allpage = int(allpage)
-    print(allpage)
-    t1 = time.time()
-    for i in range(1,allpage):
-        n = n + 1#设置存储步进
-        #设置抓第第几页
-        everypage = allid.getdata(i)
-        everyid = allid.decode(**everypage)
-        print(everyid)
-        templist.extend(everyid)
-        print('完成第 %s/%s 页的抓取，并存入临时list当中' % (i,allpage-1))
-        print('')
-        store = storage()#初始化数据存储方法
-        if n == 20:
-            print('开始临时插入数据库')
-            store.storIDs(*templist)
-            store.conn.commit()
-            templist = []#重置临时数据
-            n = 1#重置步进
-    print('插入最后一次数据库')
-    store.storIDs(*templist)
-    store.conn.commit()
-    store.conn.close()
-    t2 = time.time()
-    t = (t2-t1) * 100
-    print('插入完成，合计耗时 %s 秒' % t)
+    jobpage = jobdata()
+    data = jobpage.getjobpage('87931810')
+    jobpage.decode(data)
+
+
+
+
+
+
+#    templist = []
+#    n = 0#设置存储步进
+#    allid = getIDs()
+#    searchno = allid.pageno
+#    allpage = '%d' % ((int(searchno) / 30) + 2)
+#    allpage = int(allpage)
+#    print(allpage)
+#    t1 = time.time()
+#    for i in range(1,allpage):
+#        n = n + 1#设置存储步进
+#        #设置抓第第几页
+#        everypage = allid.getdata(i)
+#        everyid = allid.decode(**everypage)
+#        print(everyid)
+#        templist.extend(everyid)
+#        print('完成第 %s/%s 页的抓取，并存入临时list当中' % (i,allpage-1))
+#        print('')
+#        store = storage()#初始化数据存储方法
+#        if n == 20:
+#            print('开始临时插入数据库')
+#            store.storIDs(*templist)
+#            store.conn.commit()
+#            templist = []#重置临时数据
+#            n = 1#重置步进
+#    print('插入最后一次数据库')
+#    store.storIDs(*templist)
+#    store.conn.commit()
+#    store.conn.close()
+#    t2 = time.time()
+#    t = (t2-t1) * 100
+#    print('插入完成，合计耗时 %s 秒' % t)
