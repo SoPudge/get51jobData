@@ -24,6 +24,9 @@ def Parmas(pageno = 1):
 
 class getIDs(object):
     def __init__(self):
+        pass
+    def getpageno(self):
+        #该方法只用一次，获取关键字页数
         #构建get url，先构建完成带参数url，在附加req
         getUrl = '%s%s' % ('http://m.51job.com/search/joblist.php?',Parmas())
         getreq = request.Request(getUrl,headers = headers()) 
@@ -32,7 +35,8 @@ class getIDs(object):
             htmlresult = f.read().decode('utf-8')
         #匹配一共有多少个搜索结果
         partten = re.compile(r'(<p class="result">为您找到相关结果约<span>)(\d{0,9})(</span>个</p>)')
-        self.searchresult = partten.search(htmlresult).group(2)
+        searchresult = partten.search(htmlresult).group(2)
+        return searchresult
 
     def getdata(self,pageno=1):
         #先附加req，提交时post参数，参数必须ascii，前程无忧提交的是空数据，请求的网址是带参数的，因为返回json过大，GET无法支持
@@ -65,7 +69,7 @@ class getCorpData(object):
         #heaser-end
         self._corpDetails = {}
 
-    def getCorpDetails(self):
+    def getjobcopage(self):
         corpPararmData = parse.urlencode({'coid':3598778})
         corpGetDataUrl = '%s%s' % (self._corpSearchreq,corpPararmData)
         with request.urlopen(corpGetDataUrl) as f:
@@ -74,7 +78,7 @@ class getCorpData(object):
             #    print('%s:%s' % (k,v))
             return f.read().decode('utf-8')
 
-    def decodeCorpDetails(self,data):
+    def decodejobco(self,data):
         soupCorpDetails = BeautifulSoup(data,'html.parser')
         corpName = soupCorpDetails.h1.get_text()
         #获取公司名称
@@ -105,7 +109,7 @@ if __name__ == '__main__':
     templist = []
     n = 0#设置存储步进
     allid = getIDs()
-    searchno = allid.searchresult
+    searchno = allid.getpageno()
     allpage = '%d' % ((int(searchno) / 30) + 2)
     allpage = int(allpage)
     print(allpage)
