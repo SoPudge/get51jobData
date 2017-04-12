@@ -72,27 +72,31 @@ class jobdata(object):
         with request.urlopen(getreq) as f:
             return f.read().decode('utf-8')
 
-    def decode(self,data):
+    def decode(self,data,jobid):
         soup = BeautifulSoup(data,'html.parser')
-        #职位名称
+        #职位名称,#职位薪资,#规模,#学历degree，工作经验workyear，#地区district,#地址address，#更新日期updatetime，#职位描述description
         jobtitle = soup.find(class_ = 'xtit').string
-        #职位薪资
-        saltype = soup.find('span',text='薪资').next_sibling
-        #规模
+        if soup.find('span',text='薪资'):
+            saltype = soup.find('span',text='薪资').next_sibling
+        else:
+            saltype = '面议'
         cosize = soup.find('span',text='规模').next_sibling
-        #学历degree，工作经验workyear
         degwork = soup.find('span',text='招聘').next_sibling
         degree = str(degwork).split(' ')[2]
         workyear = str(degwork).split(' ')[4][0]
-        #地区district
+        if workyear == '工':
+            workyear = '不限'
         district = soup.find('span',text='地区').next_sibling
-        #地址address
-        address = soup.find(class_ = 'area dicons_before').string
-        #更新日期updatetime
+        if soup.find(class_ = 'area dicons_before'):
+            address = soup.find(class_ = 'area dicons_before').string
+        else:
+            address = '无地址'
         uptime = soup.find('span',text='发布').next_sibling
-        #职位描述description
-        description = soup.find('article').get_text().stripped
-        print(description)
+        description = soup.find('article').get_text()
+
+        jobdata = []
+        jobdata.append((jobid,jobtitle,saltype,cosize,degree,workyear,district,address,uptime,description))
+        return jobdata
 
 class codata(object):
     def __init__(self):
@@ -111,56 +115,88 @@ class storage(object):
         self.conn = sqlite3.connect('job.db')
         self.__c = self.conn.cursor()
         self.__c.execute('CREATE TABLE IF NOT EXISTS ids (jobid TEXT PRIMARY KEY,coid TEXT)')
+        self.__c.execute('CREATE TABLE IF NOT EXISTS jobs (jobid TEXT PRIMARY KEY,jobtitle TEXT,saltype TEXT,cosize TEXT,degree TEXT,workyear TEXT,district TEXT,address TEXT,uptime TEXT,description TEXT)')
+        #self.__c.execute('CREATE TABLE IF NOT EXISTS corps ()')
 
     def storIDs(self,*args):
         args = args
         self.__c.executemany('INSERT INTO ids VALUES (?,?)',args)
 
+    @property
+    def getjobids(self):
+        self.__c.execute('SELECT jobid FROM ids')
+        jobidlist = self.__c.fetchall()
+        return jobidlist
+
     def storjobs(self,*args):
-        pass
+        args = args
+        self.__c.executemany('INSERT INTO jobs VALUES (?,?,?,?,?,?,?,?,?,?)',args)
 
     def storcorps(self,*args):
         pass
 
 
 if __name__ == '__main__':
+    templist = []
+    n = 0#设置存储步进
+    allid = getIDs()
+    searchno = allid.pageno
+    allpage = '%d' % ((int(searchno) / 30) + 2)
+    allpage = int(allpage)
+    print(allpage)
+    t1 = time.time()
+    for i in range(1,allpage):
+        n = n + 1#设置存储步进
+        #设置抓第第几页
+        everypage = allid.getdata(i)
+        everyid = allid.decode(**everypage)
+        print(everyid)
+        templist.extend(everyid)
+        print('完成第 %s/%s 页的抓取，并存入临时list当中' % (i,allpage-1))
+        print('')
+        store = storage()#初始化数据存储方法
+        if n == 20:
+            print('开始临时插入数据库')
+            store.storIDs(*templist)
+            store.conn.commit()
+            templist = []#重置临时数据
+            n = 1#重置步进
+    print('插入最后一次数据库')
+    store.storIDs(*templist)
+    store.conn.commit()
+    store.conn.close()
+    t2 = time.time()
+    t = (t2-t1) * 100
+    print('插入完成，合计耗时 %s 秒' % t)
+
+
+#开始插入job信息
     jobpage = jobdata()
-    data = jobpage.getjobpage('71286266')
-    jobpage.decode(data)
+    jobstore = storage()
+    jobtemp = []
+    n = 0 #设置步进
+    #循环从ids表中取出的job列表
+    t1 = time.time()
+    for i in range(0,len(jobstore.getjobids)):
+        n = n + 1
+        print('开始抓取第 %s 个jobid：%s' % (i,jobstore.getjobids[i][0]))
+        data = jobpage.getjobpage(jobstore.getjobids[i][0])
+        jobstorelist = jobpage.decode(data,jobstore.getjobids[i][0])
+        jobtemp.extend(jobstorelist)
+        if n == 21:
+            print('此次抓取信息如下')
+            print(jobtemp)
+            print('开始临时插入job数据库信息21条')
+            jobstore.storjobs(*jobtemp)
+            jobstore.conn.commit()
+            print('插入完成')
+            n = 0
+            jobtemp = []#重置临时列表
+    print('插入最后一次数据')
+    jobstore.storjobs(*jobtemp)
+    jobstore.conn.commit()
+    jobstore.conn.close()
+    t2 = time.time()
+    t = (t2-t1) * 100
+    print('插入完成，合计耗时 %s 秒' % t)
 
-
-
-
-
-
-#    templist = []
-#    n = 0#设置存储步进
-#    allid = getIDs()
-#    searchno = allid.pageno
-#    allpage = '%d' % ((int(searchno) / 30) + 2)
-#    allpage = int(allpage)
-#    print(allpage)
-#    t1 = time.time()
-#    for i in range(1,allpage):
-#        n = n + 1#设置存储步进
-#        #设置抓第第几页
-#        everypage = allid.getdata(i)
-#        everyid = allid.decode(**everypage)
-#        print(everyid)
-#        templist.extend(everyid)
-#        print('完成第 %s/%s 页的抓取，并存入临时list当中' % (i,allpage-1))
-#        print('')
-#        store = storage()#初始化数据存储方法
-#        if n == 20:
-#            print('开始临时插入数据库')
-#            store.storIDs(*templist)
-#            store.conn.commit()
-#            templist = []#重置临时数据
-#            n = 1#重置步进
-#    print('插入最后一次数据库')
-#    store.storIDs(*templist)
-#    store.conn.commit()
-#    store.conn.close()
-#    t2 = time.time()
-#    t = (t2-t1) * 100
-#    print('插入完成，合计耗时 %s 秒' % t)
