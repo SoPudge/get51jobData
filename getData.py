@@ -16,7 +16,7 @@ def headers():
     headers = {'Host':'m.51job.com', 'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:51.0) Gecko/20100101 Firefox/51.0.1 Waterfox/51.0.1' , 'Accept':'application/json', 'Accept-Language':'en-US,en;q=0.5', 'X-Requested-With':'XMLHttpRequest', 'Referer':'http://m.51job.com/search/joblist.php?keyword=python&keywordtype=2&jobarea=180200&landmark=&issuedate=&saltype=&degree=04&funtype=&indtype=&jobterm=&cotype=&workyear=02%2C03&cosize=&lonlat=&tubename=&tubeline=&radius=', 'Cookie':'guid=14742464778583340011; guide=1; ps=us%3DADpWOgJ%252BVmFSO18tUjEANwAtV2QHM1c0VixdPgg2BjEONFQ7AWtRYlM0CmYKaAAzUGADMFUvUGNQZ1B3AXMBeA%253D%253D%26%7C%26nv_3%3D; 51job=cuid%3D19936760%26%7C%26to%3DDTQCYFc8BDFRNgFqB2RXZAxzC2tVMVdhXD4AZFxgVWNcFAZsUDBWZlMsDDMBOwRqDHMLOwc0Wj9QYwFrDTFSaw0wAmlXNQ%253D%253D%26%7C%26cusername%3Dabcd666%2540126.com%26%7C%26cpassword%3D%26%7C%26ccry%3D.0V53QttMFPTE%26%7C%26cresumeid%3D19936760%26%7C%26cresumeids%3D.0V53QttMFPTE%257C.0Jjt9ZN%252F4DG2%257C.0gHlk7GWsUqg%257C%26%7C%26cname%3D%25D5%25C5%25D6%25D9%25E6%25EB%26%7C%26cemail%3Dabcd666%2540126.com%26%7C%26cemailstatus%3D3%26%7C%26cnickname%3D%26%7C%26cenglish%3D0%26%7C%26cautologin%3D1%26%7C%26sex%3D0%26%7C%26cconfirmkey%3DabOtT9Sji8bbY%26%7C%26cnamekey%3Dab8fc7wVfJkzY; msearch=keyword%3Dpython%26%7C%26funtype%3D2400%26%7C%26jobarea%3D180200%26%7C%26navurl%3DL3NlYXJjaC9qb2JsaXN0LnBocD9rZXl3b3JkPXB5dGhvbiZrZXl3b3JkdHlwZT0yJmpvYmFyZWE9MTgwMjAwJmxhbmRtYXJrPSZpc3N1ZWRhdGU9JnNhbHR5cGU9JmRlZ3JlZT0wNCZmdW50eXBlPSZpbmR0eXBlPSZqb2J0ZXJtPSZjb3R5cGU9Jndvcmt5ZWFyPTAyJTJDMDMmY29zaXplPSZsb25sYXQ9JnR1YmVuYW1lPSZ0dWJlbGluZT0mcmFkaXVzPQ%3D%3D; usign=WmAHawV5Cj1UPVooC2ZUZFF8UGBSZ1I%2FViwGZQg2Bj8LMwFpAGRTYgZgCGACZ1diV2cKOFYsVGwBdVFPC3tVGA%3D%3D; partner=51jobhtml5', 'DNT':'1', 'Connection':'keep-alive', 'Content-Length':'0'}
     return headers
 def Parmas(pageno = 1):
-    Parma = {'keyword':'it', 'keywordtype':'2', 'jobarea':'180000', #'landmark':, #'issuedate':, #'saltype':, #'degree':, #'funtype':, #'indtype':, #'jobterm':, #'cotype':, #'workyear':, #'cosize':, #'lonlat':, #'tubename':, #'tubeline':, #'radius':
+    Parma = {'keyword':'python', 'keywordtype':'2', 'jobarea':'180000', #'landmark':, #'issuedate':, #'saltype':, #'degree':, #'funtype':, #'indtype':, #'jobterm':, #'cotype':, #'workyear':, #'cosize':, #'lonlat':, #'tubename':, #'tubeline':, #'radius':
             } 
     Parma['pageno'] = pageno
     urlParams = parse.urlencode(Parma)
@@ -74,7 +74,25 @@ class jobdata(object):
 
     def decode(self,data):
         soup = BeautifulSoup(data,'html.parser')
-        print(soup)
+        #职位名称
+        jobtitle = soup.find(class_ = 'xtit').string
+        #职位薪资
+        saltype = soup.find('span',text='薪资').next_sibling
+        #规模
+        cosize = soup.find('span',text='规模').next_sibling
+        #学历degree，工作经验workyear
+        degwork = soup.find('span',text='招聘').next_sibling
+        degree = str(degwork).split(' ')[2]
+        workyear = str(degwork).split(' ')[4][0]
+        #地区district
+        district = soup.find('span',text='地区').next_sibling
+        #地址address
+        address = soup.find(class_ = 'area dicons_before').string
+        #更新日期updatetime
+        uptime = soup.find('span',text='发布').next_sibling
+        #职位描述description
+        description = soup.find('article').get_text().stripped
+        print(description)
 
 class codata(object):
     def __init__(self):
@@ -107,7 +125,7 @@ class storage(object):
 
 if __name__ == '__main__':
     jobpage = jobdata()
-    data = jobpage.getjobpage('87931810')
+    data = jobpage.getjobpage('71286266')
     jobpage.decode(data)
 
 
