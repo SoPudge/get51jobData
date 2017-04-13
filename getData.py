@@ -75,18 +75,31 @@ class jobdata(object):
     def decode(self,data,jobid):
         soup = BeautifulSoup(data,'html.parser')
         #职位名称,#职位薪资,#规模,#学历degree，工作经验workyear，#地区district,#地址address，#更新日期updatetime，#职位描述description
-        jobtitle = soup.find(class_ = 'xtit').string
+        if soup.find(class_ = 'xtit'):
+            jobtitle = soup.find(class_ = 'xtit').string
+        else:
+            jobtitle = '无工作名称'
         if soup.find('span',text='薪资'):
             saltype = soup.find('span',text='薪资').next_sibling
         else:
             saltype = '面议'
-        cosize = soup.find('span',text='规模').next_sibling
-        degwork = soup.find('span',text='招聘').next_sibling
-        degree = str(degwork).split(' ')[2]
-        workyear = str(degwork).split(' ')[4][0]
-        if workyear == '工':
+        if soup.find('span',text='规模'):
+            cosize = soup.find('span',text='规模').next_sibling
+        else:
+            cosize = '0'
+        if soup.find('span',text='招聘'):
+            degwork = soup.find('span',text='招聘').next_sibling
+            degree = str(degwork).split(' ')[2]
+            workyear = str(degwork).split(' ')[4][0]
+            if workyear == '工':
+                workyear = '不限'
+        else:
+            degree = '不限'
             workyear = '不限'
-        district = soup.find('span',text='地区').next_sibling
+        if soup.find('span',text='地区'):
+            district = soup.find('span',text='地区').next_sibling
+        else:
+            district = '无'
         if soup.find(class_ = 'area dicons_before'):
             address = soup.find(class_ = 'area dicons_before').string
         else:
