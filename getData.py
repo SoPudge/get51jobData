@@ -79,14 +79,17 @@ class jobdata(object):
             jobtitle = soup.find(class_ = 'xtit').string
         else:
             jobtitle = '无工作名称'
+
         if soup.find('span',text='薪资'):
             saltype = soup.find('span',text='薪资').next_sibling
         else:
             saltype = '面议'
+
         if soup.find('span',text='规模'):
             cosize = soup.find('span',text='规模').next_sibling
         else:
             cosize = '0'
+
         if soup.find('span',text='招聘'):
             degwork = soup.find('span',text='招聘').next_sibling
             degree = str(degwork).split(' ')[2]
@@ -96,14 +99,17 @@ class jobdata(object):
         else:
             degree = '不限'
             workyear = '不限'
+
         if soup.find('span',text='地区'):
             district = soup.find('span',text='地区').next_sibling
         else:
             district = '无'
+
         if soup.find(class_ = 'area dicons_before'):
             address = soup.find(class_ = 'area dicons_before').string
         else:
             address = '无地址'
+
         uptime = soup.find('span',text='发布').next_sibling
         description = soup.find('article').get_text()
 
